@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Cell from "./Cell";
 import "./Board.css";
-import { getRandomState } from './helpers/lights-out';
+import { getRandomLightState } from './helpers/lights-out';
 
 const CELL_NEIGHBOUR_OFFSETS = [
   [-1, 0],
@@ -53,13 +53,13 @@ function Board({
       {length: nrows},
       () => Array.from(
         {length: ncols},
-        () => getRandomState(chanceLightStartsOn)
+        () => getRandomLightState(chanceLightStartsOn)
       )
     );
   }
 
   function hasWon() {
-    return board.every(row => row.every(val => val === false));
+    return board.every(row => row.every(cell => !cell));
   }
 
   function flipCellsAround(coord) {
@@ -74,36 +74,45 @@ function Board({
         }
       };
 
-      // TODO: Make a (deep) copy of the oldBoard
+      // Can also use map in combination with the spread operator for
+      // each row. Be careful because ... only changes the identity
+      // of the surface level.
+      // NOTE: JSON.parse/stringify does not retain methods
       let boardCopy = JSON.parse(JSON.stringify(oldBoard));
 
-      // TODO: in the copy, flip this cell and the cells around it
+      // Iterate through a list of [yOffset, xOffset] coordinates
+      // corresponding to cells that need to be flipped.
+      // Then call function flipCell applying those offsets to the
+      // current coordinate (y + yOffset, x + xOffset)
       const cellsToFlip = [ [0, 0], ...CELL_NEIGHBOUR_OFFSETS ];
       for (let [yOffset, xOffset] of cellsToFlip) {
         flipCell(y + yOffset, x + xOffset, boardCopy);
       }
 
-      // TODO: return the copy
       return boardCopy;
     });
   }
 
+  const boardCells = board.map((row, y) =>
+    <tr key={`r${y}`}>
+      {row.map((val, x) =>
+        <Cell
+          key={`${y}-${x}`}
+          isLit={board[y][x]}
+          flipCellsAroundMe={() => flipCellsAround(`${y}-${x}`)}
+        />
+      )}
+    </tr>);
+
   return (
     <>
       <h1>Let's play Lights Out!</h1>
-      { hasWon() && <p>You win!</p>}
+      { hasWon() && <p>You win!</p> }
       { !hasWon() &&
         <table>
-          { board.map((row, y) =>
-            <tr key={`r${y}`}>
-              {row.map((val, x) =>
-                <Cell
-                  key={`${y}-${x}`}
-                  isLit={board[y][x]}
-                  flipCellsAroundMe={() => flipCellsAround(`${y}-${x}`)}
-                />
-              )}
-            </tr>) }
+          <tbody>
+            { boardCells }
+          </tbody>
         </table>
       }
     </>
