@@ -1,6 +1,18 @@
 import React, { useState } from "react";
 import Cell from "./Cell";
 import "./Board.css";
+import { getRandomState } from './helpers/lights-out';
+
+const CELL_NEIGHBOUR_OFFSETS = [
+  [-1, 0],
+  [0, -1],
+  [0, 1],
+  [1, 0]
+];
+
+const DEFAULT_NROWS = 5;
+const DEFAULT_NCOLS = 7;
+const DEFAULT_CHANCE_LIGHT_STARTS_ON = 0.5;
 
 /** Game board of Lights out.
  *
@@ -27,18 +39,27 @@ import "./Board.css";
  *
  **/
 
-function Board({ nrows, ncols, chanceLightStartsOn }) {
+function Board({
+  nrows=DEFAULT_NROWS,
+  ncols=DEFAULT_NCOLS,
+  chanceLightStartsOn=DEFAULT_CHANCE_LIGHT_STARTS_ON
+  }) {
+
   const [board, setBoard] = useState(createBoard());
 
   /** create a board nrows high/ncols wide, each cell randomly lit or unlit */
   function createBoard() {
-    let initialBoard = [];
-    // TODO: create array-of-arrays of true/false values
-    return initialBoard;
+    return Array.from(
+      {length: nrows},
+      () => Array.from(
+        {length: ncols},
+        () => getRandomState(chanceLightStartsOn)
+      )
+    );
   }
 
   function hasWon() {
-    // TODO: check the board in state to determine whether the player has won.
+    return board.every(row => row.every(val => val === false));
   }
 
   function flipCellsAround(coord) {
@@ -54,20 +75,39 @@ function Board({ nrows, ncols, chanceLightStartsOn }) {
       };
 
       // TODO: Make a (deep) copy of the oldBoard
+      let boardCopy = JSON.parse(JSON.stringify(oldBoard));
 
       // TODO: in the copy, flip this cell and the cells around it
+      const cellsToFlip = [ [0, 0], ...CELL_NEIGHBOUR_OFFSETS ];
+      for (let [yOffset, xOffset] of cellsToFlip) {
+        flipCell(y + yOffset, x + xOffset, boardCopy);
+      }
 
       // TODO: return the copy
+      return boardCopy;
     });
   }
 
-  // if the game is won, just show a winning msg & render nothing else
-
-  // TODO
-
-  // make table board
-
-  // TODO
+  return (
+    <>
+      <h1>Let's play Lights Out!</h1>
+      { hasWon() && <p>You win!</p>}
+      { !hasWon() &&
+        <table>
+          { board.map((row, y) =>
+            <tr key={`r${y}`}>
+              {row.map((val, x) =>
+                <Cell
+                  key={`${y}-${x}`}
+                  isLit={board[y][x]}
+                  flipCellsAroundMe={() => flipCellsAround(`${y}-${x}`)}
+                />
+              )}
+            </tr>) }
+        </table>
+      }
+    </>
+  );
 }
 
 export default Board;
